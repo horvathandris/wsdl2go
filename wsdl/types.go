@@ -2,22 +2,26 @@ package wsdl
 
 // TODO: Add all types from the spec.
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"fmt"
+	"io"
+)
 
 // Definitions is the root element of a WSDL document.
 type Definitions struct {
-	XMLName         xml.Name          `xml:"definitions"`
-	Name            string            `xml:"name,attr"`
-	TargetNamespace string            `xml:"targetNamespace,attr"`
-	Namespaces      map[string]string `xml:"-"`
-	SOAPEnv         string            `xml:"SOAP-ENV,attr"`
-	SOAPEnc         string            `xml:"SOAP-ENC,attr"`
-	Service         Service           `xml:"service"`
-	Imports         []*Import         `xml:"import"`
-	Schema          Schema            `xml:"types>schema"`
-	Messages        []*Message        `xml:"message"`
-	PortType        PortType          `xml:"portType"` // TODO: PortType slice?
-	Binding         Binding           `xml:"binding"`
+	XMLName         xml.Name           `xml:"definitions"`
+	Name            string             `xml:"name,attr"`
+	TargetNamespace string             `xml:"targetNamespace,attr"`
+	Namespaces      map[string]string  `xml:"-"`
+	SOAPEnv         string             `xml:"SOAP-ENV,attr"`
+	SOAPEnc         string             `xml:"SOAP-ENC,attr"`
+	Service         Service            `xml:"service"`
+	Imports         []*Import          `xml:"import"`
+	Schemas         map[string]Schema  `xml:"types>schema"`
+	Messages        map[string]Message `xml:"message"`
+	PortType        PortType           `xml:"portType"` // TODO: PortType slice?
+	Binding         Binding            `xml:"binding"`
 }
 
 type definitionDup Definitions
@@ -32,13 +36,20 @@ func (def *Definitions) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 			def.Namespaces[attr.Name.Local] = attr.Value
 		}
 	}
+	for {
+		t, err := d.Token()
+		if err == io.EOF {
+			break
+		}
+		fmt.Println(t)
+	}
 	return d.DecodeElement((*definitionDup)(def), &start)
 }
 
 // Service defines a WSDL service and with a location, like an HTTP server.
 type Service struct {
-	Doc   string  `xml:"documentation"`
-	Ports []*Port `xml:"port"`
+	Doc   string           `xml:"documentation"`
+	Ports map[string]*Port `xml:"port"`
 }
 
 // Port for WSDL service.
@@ -57,14 +68,14 @@ type Address struct {
 
 // Schema of WSDL document.
 type Schema struct {
-	XMLName         xml.Name          `xml:"schema"`
-	TargetNamespace string            `xml:"targetNamespace,attr"`
-	Namespaces      map[string]string `xml:"-"`
-	Imports         []*ImportSchema   `xml:"import"`
-	Includes        []*IncludeSchema  `xml:"include"`
-	SimpleTypes     []*SimpleType     `xml:"simpleType"`
-	ComplexTypes    []*ComplexType    `xml:"complexType"`
-	Elements        []*Element        `xml:"element"`
+	XMLName         xml.Name                `xml:"schema"`
+	TargetNamespace string                  `xml:"targetNamespace,attr"`
+	Namespaces      map[string]string       `xml:"-"`
+	Imports         []*ImportSchema         `xml:"import"`
+	Includes        []*IncludeSchema        `xml:"include"`
+	SimpleTypes     map[string]*SimpleType  `xml:"simpleType"`
+	ComplexTypes    map[string]*ComplexType `xml:"complexType"`
+	Elements        map[string]*Element     `xml:"element"`
 }
 
 // Unmarshaling solution from Matt Harden (http://grokbase.com/t/gg/golang-nuts/14bk21xb7a/go-nuts-extending-encoding-xml-to-capture-unknown-attributes)
@@ -158,11 +169,11 @@ type Extension struct {
 
 // Sequence describes a list of elements (parameters) of a type.
 type Sequence struct {
-	XMLName      xml.Name       `xml:"sequence"`
-	ComplexTypes []*ComplexType `xml:"complexType"`
-	Elements     []*Element     `xml:"element"`
-	Any          []*AnyElement  `xml:"any"`
-	Choices      []*Choice      `xml:"choice"`
+	XMLName      xml.Name            `xml:"sequence"`
+	ComplexTypes []*ComplexType      `xml:"complexType"`
+	Elements     map[string]*Element `xml:"element"`
+	Any          []*AnyElement       `xml:"any"`
+	Choices      []*Choice           `xml:"choice"`
 }
 
 // Choice describes a list of elements (parameters) of a type.
@@ -228,9 +239,9 @@ type IncludeSchema struct {
 // Message describes the data being communicated, such as functions
 // and their parameters.
 type Message struct {
-	XMLName xml.Name `xml:"message"`
-	Name    string   `xml:"name,attr"`
-	Parts   []*Part  `xml:"part"`
+	XMLName xml.Name         `xml:"message"`
+	Name    string           `xml:"name,attr"`
+	Parts   map[string]*Part `xml:"part"`
 }
 
 // Part describes what Type or Element to use from the PortType.
